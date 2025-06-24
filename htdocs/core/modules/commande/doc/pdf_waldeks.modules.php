@@ -43,7 +43,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
     public function write_file($object, $outputlangs, $srctemplatepath = '', $hidedetails = 0, $hidedesc = 0, $hideref = 0)
 		{
-				global $conf, $langs;
+				global $conf, $langs,$user, $object;
 
 				if (!is_object($outputlangs)) {
 						$outputlangs = $langs;
@@ -67,7 +67,7 @@ class pdf_waldeks extends ModelePDFCommandes
 				if (!empty($conf->global->MAIN_INFO_SOCIETE_LOGO) && $this->option_logo) {
 						$logo = $conf->mycompany->dir_output . "/logos/" . $conf->global->MAIN_INFO_SOCIETE_LOGO;
 						if (is_readable($logo)) {
-								$pdf->Image($logo, $this->marge_gauche, $posy, 40);
+								$pdf->Image($logo, $this->marge_gauche, $posy, 60);
 						}
 				}
 
@@ -80,9 +80,10 @@ class pdf_waldeks extends ModelePDFCommandes
 
 				// Sender info
 				$web = $conf->global->MAIN_INFO_SOCIETE_WEB ?? '';
-				$phone = $conf->global->MAIN_INFO_SOCIETE_PHONE ?? 'T +49 8061 2409';
-				$mobile = $conf->global->MAIN_INFO_SOCIETE_MOBILE ?? 'M +49 176 3560 7848';
-				$email = $conf->global->MAIN_INFO_SOCIETE_EMAIL ?? 'f.colombini@waldeks.com';
+				$phone  = !empty($user->office_phone) ? "T " . $user->office_phone : "-";
+				$mobile = !empty($user->user_mobile)  ? "M " . $user->user_mobile  : "-";
+				$email  = !empty($user->email)        ? $user->email              : "-";
+
 
 				$sender_text = $conf->global->MAIN_INFO_SOCIETE_NOM . "\n" .
 						$conf->global->MAIN_INFO_SOCIETE_ADDRESS . "\n" .
@@ -100,8 +101,13 @@ class pdf_waldeks extends ModelePDFCommandes
 
 				$posy += 5;
 				
-				$company_info = "Waldeks GmbH - Dieselstraße2 - 83043 Bad Aibling-Deutschland";
-				$pdf->SetFont('', '', $default_font_size - 2); 
+				$company_info = $conf->global->MAIN_INFO_SOCIETE_NOM . " - " .
+                $conf->global->MAIN_INFO_SOCIETE_ADDRESS . " - " .
+                $conf->global->MAIN_INFO_SOCIETE_ZIP . " " .
+                $conf->global->MAIN_INFO_SOCIETE_TOWN . " - " .
+                $conf->global->MAIN_INFO_SOCIETE_COUNTRY;
+
+				$pdf->SetFont('', '', $default_font_size - 1); 
 				$pdf->SetXY($this->marge_gauche, $posy);
 				$pdf->MultiCell(100, 6, $company_info);
 
@@ -147,41 +153,46 @@ class pdf_waldeks extends ModelePDFCommandes
 
 				// Content rows
 				$current_y = $box_y + $line_height + 2; // Leave space under title
+
+				// Auftragsnummer
 				$pdf->SetXY($box_x + 2, $current_y);
 				$pdf->Cell($col1_width, $line_height, "Auftragsnummer:");
 				$pdf->Cell($col2_width, $line_height, $object->ref, 0, 0, 'R');
 				$current_y += $line_height;
 
+				// Angebotsnummer (from propal origin)
+				$quotation_ref = '--';
+				if (!empty($object->origin) && $object->origin === 'propal' && $object->origin_id > 0) {
+						require_once DOL_DOCUMENT_ROOT . '/comm/propal/class/propal.class.php';
+						$propal = new Propal($this->db);
+						if ($propal->fetch($object->origin_id) > 0) {
+								$quotation_ref = $propal->ref;
+						}
+				}
 				$pdf->SetXY($box_x + 2, $current_y);
 				$pdf->Cell($col1_width, $line_height, "Angebotsnummer:");
-				$pdf->Cell($col2_width, $line_height, $object->ref_client ?: '—', 0, 0, 'R');
+				$pdf->Cell($col2_width, $line_height, $quotation_ref, 0, 0, 'R');
 				$current_y += $line_height;
 
+				// Ihre Kundennummer
 				$pdf->SetXY($box_x + 2, $current_y);
 				$pdf->Cell($col1_width, $line_height, "Ihre Kundennummer:");
 				$pdf->Cell($col2_width, $line_height, $object->thirdparty->code_client, 0, 0, 'R');
 				$current_y += $line_height;
 
-				$origin = $object->origin; // should be 'propal'
-				$origin_id = $object->origin_id;
-
-				$quotation_ref = '';
-				if ($origin === 'propal' && $origin_id > 0) {
-						require_once DOL_DOCUMENT_ROOT.'/comm/propal/class/propal.class.php';
-						$propal = new Propal($this->db);
-						if ($propal->fetch($origin_id) > 0) {
-								$quotation_ref = $propal->ref;
-						}
-				}
-
+				// Ihre BestellNr (custom field, use your logic here or fallback to ref_client)
 				$pdf->SetXY($box_x + 2, $current_y);
 				$pdf->Cell($col1_width, $line_height, "Ihre BestellNr:");
 				$pdf->Cell($col2_width, $line_height, ($object->ref_client ?: 'per Mail'), 0, 0, 'R');
 				$current_y += $line_height;
 
+				// Auftragsdatum in German date format: DD.MM.YYYY
 				$pdf->SetXY($box_x + 2, $current_y);
 				$pdf->Cell($col1_width, $line_height, "Auftragsdatum:");
-				$pdf->Cell($col2_width, $line_height, dol_print_date($object->date, 'daytext'), 0, 0, 'R');
+				$pdf->Cell($col2_width, $line_height, dol_print_date($object->date, 'day', '', $outputlangs), 0, 0, 'R');
+				// or force format:
+				$current_y += $line_height;
+
 
 				// Move Y cursor for next content
 				$posy = $box_y + $box_height + 5;
