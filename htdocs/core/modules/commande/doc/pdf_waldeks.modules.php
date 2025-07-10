@@ -66,16 +66,16 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		$w1 = 15;
 		$w2 = 15;
-		$w3 = 18;
+		$w3 = 15;
 		$w5 = 20;
 		$w6 = 20;
-		$w4 = $this->page_largeur - $this->marge_gauche - $this->marge_droite - ($w1 + $w2 + $w3 + $w5 + $w6 - 3);
+		$w4 = $this->page_largeur - $this->marge_gauche - $this->marge_droite - ($w1 + $w2 + $w3 + $w5 + $w6);
 
 		$headers = [
 			['label' => 'Pos.', 'width' => $w1],
 			['label' => 'Menge', 'width' => $w2],
-			['label' => "Unsere\nArt.-Nr.", 'width' => $w3],
-			['label' => '  Bezeichnung', 'width' => $w4, 'align' => 'L'],
+			['label' => "Unsere\nArt.-Nr", 'width' => $w3],
+			['label' => 'Bezeichnung', 'width' => $w4],
 			['label' => "Einzelpreis\n(€)", 'width' => $w5],
 			['label' => "Gesamt\n(€)", 'width' => $w6],
 		];
@@ -90,14 +90,16 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		$x = $this->marge_gauche;
 		foreach ($headers as $h) {
+			$pdf->SetXY($x, $posy + 1);
 
-				$lines = explode("\n", $h['label']);
-				$lineCount = count($lines);
-				$lineHeight = 4;
-				$textBlockHeight = $lineCount * $lineHeight;
-				$yOffset = ($headerHeight - $textBlockHeight) / 2;
+			$lines = explode("\n", $h['label']);
+			$lineCount = count($lines);
+			$lineHeight = 4;
+			$textBlockHeight = $lineCount * $lineHeight;
+			$yOffset = ($headerHeight - $textBlockHeight) / 2;
 
-				$y = $posy + $yOffset; // no +1 here
+			// Start at vertically centered position
+			$y = $posy + 1 + $yOffset;
 
 			// MultiCell allows vertical stacking with proper centering
 			$pdf->SetXY($x, $y);
@@ -106,7 +108,7 @@ class pdf_waldeks extends ModelePDFCommandes
 				$lineHeight,
 				$h['label'],
 				0,
-				$h['align'] ?? 'C', // Use custom alignment if defined, fallback to center,
+				'C',
 				false,
 				0
 			);
@@ -117,8 +119,8 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		// Bottom line under header
 		$pdf->SetLineWidth(0.4);
-		$pdf->Line($this->marge_gauche, $posy + $headerHeight, $this->page_largeur - $this->marge_droite, $posy + $headerHeight);
-		$pdf->SetY($posy + $headerHeight );
+		$pdf->Line($this->marge_gauche, $posy + $headerHeight + 1, $this->page_largeur - $this->marge_droite, $posy + $headerHeight + 1);
+		$pdf->SetY($posy + $headerHeight + 2);
 	}
 
 
@@ -146,19 +148,16 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		// === DIN 676 Standard Fold Marks ===
 		$pdf->SetDrawColor(0, 0, 0); // black
-		$pdf->SetLineWidth(0.1);
+		$pdf->SetLineWidth(0.4);
 
 		// Left X position (just inside left edge)
 		$markerX = $this->marge_gauche - 5;
 
-		// Faltmarke 1 (fold at 97mm)
-		$pdf->Line($markerX, 97, $markerX + 2, 97);
+		// Faltmarke 1 (fold at 87mm)
+		$pdf->Line($markerX, 87, $markerX + 2, 87);
 
-		// Faltmarke 1.1 (fold at 149mm)
-		$pdf->Line($markerX, 149, $markerX + 2, 149);
-
-		// Faltmarke 2 (fold at 202mm)
-		$pdf->Line($markerX, 202, $markerX + 2, 202);
+		// Faltmarke 2 (fold at 192mm)
+		$pdf->Line($markerX, 192, $markerX + 2, 192);
 
 		// === Header
 		$pdf->headerCallback = function ($pdf) use ($object, $default_font_size, $outputlangs) {
@@ -175,7 +174,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
 			// Draw order strip **only on pages after page 1**
 			if ($pdf->getPage() > 1) {
-				$pdf->SetY($startY + 25);
+				$pdf->SetY($startY + 20);
 				$pdf->SetTextColor(0, 0, 0);
 
 				$ref = $object->ref;
@@ -183,7 +182,7 @@ class pdf_waldeks extends ModelePDFCommandes
 				$client = $object->thirdparty->name;
 				$code_client = $object->thirdparty->code_client;
 
-				$boldPart = "Auftragsbestätigung $ref vom $date";
+				$boldPart = "Auftrags Nr. $ref vom $date";
 				$normalPart = " an $client / $code_client";
 
 				$pdf->SetX($left);
@@ -195,7 +194,6 @@ class pdf_waldeks extends ModelePDFCommandes
 				// Normal part
 				$pdf->SetFont('', '', $default_font_size);
 				$pdf->Cell(0, 10, $normalPart, 0, 1, 'L');
-				
 			}
 
 		};
@@ -213,7 +211,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
 			// Block content
 			$blocks = [
-				"Waldeks GmbH\nDieselstraße 2, 83043 Bad Aibling\nTel.: +49 8061 2406\ninfo@waldeks.com\nwww.waldeks.de",
+				"WALDEKS GmbH\nDieselstraße 2, 83043 Bad Aibling\nTel.: +49 8061 2406\ninfo@waldeks.com\nwww.waldeks.de",
 				"Sitz: Bad Aibling\nAmtsgericht: Traunstein HRB 28276\nUSt-IdNr.: DE327061763\nCEO: Filipe Colombini",
 				"Bankverbindung:\nVolksbank Raiffeisenbank\nRosenheim-Chiemsee eG",
 				"IBAN:\nDE59 7116 0000 0008 0679 37\nBIC:\nGENODEF1VR"
@@ -251,7 +249,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
 			// Page number aligned right
 			$pdf->SetFont('', 'B', $default_font_size + 1);
-			$pdf->SetXY($page_width - $margins['right'] - 35, $footer_y - 10);
+			$pdf->SetXY($page_width - $margins['right'] - 35, $footer_y - 12);
 			$pdf->Cell(50, 10, "Seite " . $pdf->getAliasNumPage() . " von " . $pdf->getAliasNbPages(), 0, 0, 'R');
 		};
 
@@ -279,12 +277,12 @@ class pdf_waldeks extends ModelePDFCommandes
 			$pdf->Image($iso_logo_path, 170, $posy, 25);
 		}
 
-		$posy += 27;
+		$posy += 25;
 
 		// Sender info
 		$web = $conf->global->MAIN_INFO_SOCIETE_WEB ?? '';
-		$phone = !empty($user->office_phone) ? "T: " . $user->office_phone : "-";
-		$mobile = !empty($user->user_mobile) ? "M: " . $user->user_mobile : "-";
+		$phone = !empty($user->office_phone) ? "T " . $user->office_phone : "-";
+		$mobile = !empty($user->user_mobile) ? "M " . $user->user_mobile : "-";
 		$email = !empty($user->email) ? $user->email : "-";
 
 		$pdf->SetTextColor(50, 50, 50); // Dark gray text
@@ -301,9 +299,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		// Line 2: Address
 		$pdf->SetFont('', '', $default_font_size);
-		$custom_address = "Dieselstraße 2";
-		$pdf->MultiCell($colWidth, $lineHeight, $custom_address, 0, 'L');
-		//$pdf->MultiCell($colWidth, $lineHeight, $conf->global->MAIN_INFO_SOCIETE_ADDRESS, 0, 'L');
+		$pdf->MultiCell($colWidth, $lineHeight, $conf->global->MAIN_INFO_SOCIETE_ADDRESS, 0, 'L');
 		$pdf->SetX($startX);
 
 		// Line 3: ZIP + Town
@@ -351,7 +347,7 @@ class pdf_waldeks extends ModelePDFCommandes
 
 		$pdf->SetFont('', '', $default_font_size - 1);
 		$pdf->SetXY($this->marge_gauche, $posy);
-		$pdf->MultiCell(90, 6, $company_info, 0, 'L');
+		$pdf->MultiCell(100, 6, $company_info);
 
 		$posy += 10;
 
@@ -361,7 +357,7 @@ class pdf_waldeks extends ModelePDFCommandes
 			$recipient->zip . " " . $recipient->town . "\n" .
 			$recipient->country;
 
-		$pdf->SetFont('', '', $default_font_size + 1);
+		$pdf->SetFont('', '', $default_font_size + 2);
 		$pdf->SetXY($this->marge_gauche, $posy);
 		$pdf->MultiCell(100, 6, $recipient_text);
 
@@ -383,22 +379,21 @@ class pdf_waldeks extends ModelePDFCommandes
 		$col2_width = $box_width - 32;
 
 		// Draw rectangle box
-		$box_height = $line_height * 5 + 4; // 6 rows + 2 padding
+		$box_height = $line_height * 6 + 4; // 6 rows + 2 padding
 		$pdf->SetLineWidth(0.2);
 		$pdf->Rect($box_x, $box_y, $box_width, $box_height);
 		// $pdf->SetLineWidth(0.2);
 
 		// Title: Order confirmation (underlined, right-aligned)
-		//$pdf->SetFont('', 'U', $default_font_size);
-		//$pdf->SetXY($box_x + 2 + $col1_width, $box_y + 2); // match the ref's X
-		//$pdf->Cell($col2_width, $line_height, "Auftragsbestätigung", 0, 0, 'R');
+		$pdf->SetFont('', 'U', $default_font_size);
+		$pdf->SetXY($box_x + 2 + $col1_width, $box_y + 2); // match the ref's X
+		$pdf->Cell($col2_width, $line_height, "Auftragsbestätigung", 0, 0, 'R');
 
 		// Switch to content font
 		$pdf->SetFont('', '', $default_font_size);
 
 		// Content rows
-		//$current_y = $box_y + $line_height + 2; // Leave space under title
-		$current_y = $box_y + 2; // Leave space under title
+		$current_y = $box_y + $line_height + 2; // Leave space under title
 
 		// Auftragsnummer
 		$pdf->SetXY($box_x + 2, $current_y);
@@ -515,14 +510,16 @@ class pdf_waldeks extends ModelePDFCommandes
 			);
 		}
 
+
+
 		$w1 = 15;
 		$w2 = 15;
-		$w3 = 18;
+		$w3 = 15;
 		$w5 = 20;
 		$w6 = 20;
 
 		$totalFixedWidth = $w1 + $w2 + $w3 + $w5 + $w6;
-		$w4 = $this->page_largeur - $this->marge_gauche - $this->marge_droite - $totalFixedWidth -2;
+		$w4 = $this->page_largeur - $this->marge_gauche - $this->marge_droite - $totalFixedWidth;
 
 		// === Table Header Top Line ===
 		// Draw Header
@@ -548,19 +545,16 @@ class pdf_waldeks extends ModelePDFCommandes
 
 				// === DIN 676 Standard Fold Marks ===
 				$pdf->SetDrawColor(0, 0, 0); // black
-				$pdf->SetLineWidth(0.1);
+				$pdf->SetLineWidth(0.6);
 
 				// Left X position (just inside left edge)
 				$markerX = $this->marge_gauche - 5;
 
-				// Faltmarke 1 (fold at 97mm)
-				$pdf->Line($markerX, 97, $markerX + 2, 97);
+				// Faltmarke 1 (fold at 87mm)
+				$pdf->Line($markerX, 87, $markerX + 2, 87);
 
-				// Faltmarke 1.1 (fold at 149mm)
-				$pdf->Line($markerX, 149, $markerX + 2, 149);
-
-				// Faltmarke 2 (fold at 202mm)
-				$pdf->Line($markerX, 202, $markerX + 2, 202);
+				// Faltmarke 2 (fold at 192mm)
+				$pdf->Line($markerX, 192, $markerX + 2, 192);
 
 				// Redraw header on new page
 				$this->drawTableHeader($pdf, $default_font_size);
@@ -570,9 +564,9 @@ class pdf_waldeks extends ModelePDFCommandes
 			$startY = $pdf->GetY();
 
 			// ==== DESCRIPTION FIELD (Bezeichnung) ====
-			$descX = $startX + $w1 + $w2 + $w3 + 2;
+			$descX = $startX + $w1 + $w2 + $w3;
 			$descWidth = $w4;
-			$textWidth = $w4 - 6; // simulate padding-right by limiting text width
+			$textWidth = $w4 - 5; // simulate padding-right by limiting text width
 
 			$vertical_padding = 2;
 
@@ -669,9 +663,6 @@ class pdf_waldeks extends ModelePDFCommandes
 		$pdf->SetFont('', '', $default_font_size);
 		$note_width = 100;
 
-
-
-
 		// Liefertermin
 		$pdf->SetFont('', 'B', $default_font_size);
 		$pdf->MultiCell($note_width, 5, "Liefertermin:", 0, 'L');
@@ -704,12 +695,11 @@ class pdf_waldeks extends ModelePDFCommandes
 		$pdf->SetFont('', '', $default_font_size);
 		$pdf->MultiCell($note_width, 5, $object->cond_reglement_code ?: '30 Tage netto', 0, 'L');
 
+
 		// Save
 		$dir = $conf->commande->dir_output . "/" . dol_sanitizeFileName($object->ref);
 		dol_mkdir($dir);
-		$customName = "Waldeks - Auftragsbestätigung " . dol_sanitizeFileName($object->ref);
-		$file = $dir . "/" . $customName . ".pdf";
-		//$file = $dir . "/" . dol_sanitizeFileName($object->ref) . ".pdf";
+		$file = $dir . "/" . dol_sanitizeFileName($object->ref) . ".pdf";
 		$pdf->Output($file, 'F');
 
 		return 1;
