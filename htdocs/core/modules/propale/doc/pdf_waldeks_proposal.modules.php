@@ -1,6 +1,7 @@
 <?php
 
-require_once DOL_DOCUMENT_ROOT . '/core/modules/commande/modules_commande.php';
+require_once DOL_DOCUMENT_ROOT . '/core/modules/propale/modules_propale.php';
+require_once DOL_DOCUMENT_ROOT . '/comm/propal/class/propal.class.php';
 require_once DOL_DOCUMENT_ROOT . '/core/lib/pdf.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/includes/tecnickcom/tcpdf/tcpdf.php';
@@ -23,9 +24,9 @@ class PDFWithFooter extends TCPDF
 	}
 }
 
-class pdf_waldeks extends ModelePDFCommandes
+class pdf_waldeks_proposal extends ModelePDFPropales
 {
-	public $name = 'waldeks';
+	public $name = 'waldeks_proposal';
 	public $description = 'Minimal clean PDF module for Waldeks Sales Orders';
 
 	public function __construct($db)
